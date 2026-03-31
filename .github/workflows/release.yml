@@ -1,0 +1,91 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - '*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Changelog from Commits
+        id: changelog
+        run: |
+          CURRENT_TAG=${GITHUB_REF#refs/tags/}
+          
+          # Get previous tag by creation date (chronological order, not version)
+          PREVIOUS_TAG=$(git tag --sort=-creatordate | grep -v "^${CURRENT_TAG}$" | head -n 1)
+          
+          echo "# What's Changed" > changelog.md
+          echo "" >> changelog.md
+          
+          # Debug: show which tags we're comparing
+          echo "Current tag: ${CURRENT_TAG}"
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "Previous tag: ${PREVIOUS_TAG}"
+            echo "Comparing: ${PREVIOUS_TAG}..${CURRENT_TAG}"
+          fi
+          
+          # Get commits
+          if [ -z "$PREVIOUS_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"%s (%h)")
+          else
+            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"%s (%h)")
+          fi
+          
+          # Categorize
+          BREAKING=$(echo "$COMMITS" | grep -E "^(BREAKING|breaking|MAJOR|feat!|fix!)" || true)
+          FEATURES=$(echo "$COMMITS" | grep -E "^feat" | grep -v "!" || true)
+          FIXES=$(echo "$COMMITS" | grep -E "^fix" | grep -v "!" || true)
+          OTHERS=$(echo "$COMMITS" | grep -vE "^(feat|fix|docs|doc|BREAKING|breaking|MAJOR)" || true)
+          
+          # Build changelog
+          if [ -n "$BREAKING" ]; then
+            echo "## 🛠 Breaking Changes" >> changelog.md
+            echo "$BREAKING" | sed 's/^/- /' >> changelog.md
+            echo "" >> changelog.md
+          fi
+          
+          if [ -n "$FEATURES" ]; then
+            echo "## 🎉 New Features" >> changelog.md
+            echo "$FEATURES" | sed 's/^/- /' >> changelog.md
+            echo "" >> changelog.md
+          fi
+          
+          if [ -n "$FIXES" ]; then
+            echo "## 🔧 Fixes" >> changelog.md
+            echo "$FIXES" | sed 's/^/- /' >> changelog.md
+            echo "" >> changelog.md
+          fi
+          
+          if [ -n "$OTHERS" ]; then
+            echo "## 📝 Other Changes" >> changelog.md
+            echo "$OTHERS" | sed 's/^/- /' >> changelog.md
+            echo "" >> changelog.md
+          fi
+          
+          # Add full changelog link
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREVIOUS_TAG}...${CURRENT_TAG}" >> changelog.md
+          fi
+          
+          cat changelog.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: changelog.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
