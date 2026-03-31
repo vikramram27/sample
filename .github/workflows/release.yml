@@ -36,13 +36,11 @@ jobs:
             echo "Comparing: ${PREVIOUS_TAG}..${CURRENT_TAG}"
           fi
           
-          # Get commits with author info: "subject (hash) by author <email>"
+          # Get commits with author info: "subject (hash) by author"
           if [ -z "$PREVIOUS_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"%s (%h) by @%an|%ae")
-            CONTRIBUTORS=$(git log --pretty=format:"%an|%ae" | sort -u)
+            COMMITS=$(git log --pretty=format:"%s (%h) by @%an")
           else
-            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"%s (%h) by @%an|%ae")
-            CONTRIBUTORS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"%an|%ae" | sort -u)
+            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"%s (%h) by @%an")
           fi
           
           # Categorize commits
@@ -54,56 +52,25 @@ jobs:
           # Build changelog with author info
           if [ -n "$BREAKING" ]; then
             echo "## 🛠 Breaking Changes" >> changelog.md
-            echo "$BREAKING" | sed 's/|.*//' | sed 's/^/- /' >> changelog.md
+            echo "$BREAKING" | sed 's/^/- /' >> changelog.md
             echo "" >> changelog.md
           fi
           
           if [ -n "$FEATURES" ]; then
             echo "## 🎉 New Features" >> changelog.md
-            echo "$FEATURES" | sed 's/|.*//' | sed 's/^/- /' >> changelog.md
+            echo "$FEATURES" | sed 's/^/- /' >> changelog.md
             echo "" >> changelog.md
           fi
           
           if [ -n "$FIXES" ]; then
             echo "## 🔧 Fixes" >> changelog.md
-            echo "$FIXES" | sed 's/|.*//' | sed 's/^/- /' >> changelog.md
+            echo "$FIXES" | sed 's/^/- /' >> changelog.md
             echo "" >> changelog.md
           fi
           
           if [ -n "$OTHERS" ]; then
             echo "## 📝 Other Changes" >> changelog.md
-            echo "$OTHERS" | sed 's/|.*//' | sed 's/^/- /' >> changelog.md
-            echo "" >> changelog.md
-          fi
-          
-          # Add Contributors section at the bottom
-          if [ -n "$CONTRIBUTORS" ]; then
-            echo "## Contributors" >> changelog.md
-            echo "" >> changelog.md
-            
-            # Create a temp file for unique contributors
-            > contributors_list.tmp
-            
-            # Process each contributor and extract GitHub username
-            while IFS='|' read -r name email; do
-              # Only extract username from GitHub noreply emails
-              if [[ "$email" == *"@users.noreply.github.com" ]]; then
-                # Format: 123456789+username@users.noreply.github.com or username@users.noreply.github.com
-                username=$(echo "$email" | sed 's/@users.noreply.github.com//' | sed 's/^[0-9]*+//')
-                echo "@${username}"
-              else
-                # For non-GitHub emails, use the git author name
-                echo "**${name}**"
-              fi
-            done <<< "$CONTRIBUTORS" | sort -u >> contributors_list.tmp
-            
-            # Add contributors to changelog with bullet points
-            while read -r contributor; do
-              echo "- ${contributor}" >> changelog.md
-            done < contributors_list.tmp
-            
-            # Clean up
-            rm -f contributors_list.tmp
+            echo "$OTHERS" | sed 's/^/- /' >> changelog.md
             echo "" >> changelog.md
           fi
           
