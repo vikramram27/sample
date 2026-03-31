@@ -76,25 +76,34 @@ jobs:
             echo "" >> changelog.md
           fi
           
-          # Add Contributors section at the bottom 
+          # Add Contributors section at the bottom
           if [ -n "$CONTRIBUTORS" ]; then
             echo "## Contributors" >> changelog.md
             echo "" >> changelog.md
-            # Process each contributor once
-            echo "$CONTRIBUTORS" | while IFS='|' read -r name email; do
-              # Extract GitHub username from email
+            
+            # Create a temp file for unique contributors
+            > contributors_list.tmp
+            
+            # Process each contributor and extract GitHub username
+            while IFS='|' read -r name email; do
+              # Only extract username from GitHub noreply emails
               if [[ "$email" == *"@users.noreply.github.com" ]]; then
-                # Format: 123456789+username@users.noreply.github.com
+                # Format: 123456789+username@users.noreply.github.com or username@users.noreply.github.com
                 username=$(echo "$email" | sed 's/@users.noreply.github.com//' | sed 's/^[0-9]*+//')
-                echo "- @${username}"
-              elif [[ "$email" == *"@"* ]]; then
-                # For regular emails, try to extract username or use name
-                username=$(echo "$email" | cut -d'@' -f1)
-                echo "- @${username}"
+                echo "@${username}"
               else
-                echo "- **${name}**"
+                # For non-GitHub emails, use the git author name
+                echo "**${name}**"
               fi
-            done >> changelog.md
+            done <<< "$CONTRIBUTORS" | sort -u >> contributors_list.tmp
+            
+            # Add contributors to changelog with bullet points
+            while read -r contributor; do
+              echo "- ${contributor}" >> changelog.md
+            done < contributors_list.tmp
+            
+            # Clean up
+            rm -f contributors_list.tmp
             echo "" >> changelog.md
           fi
           
