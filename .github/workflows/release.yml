@@ -37,13 +37,14 @@ jobs:
           fi
           
           # Get commits with author info: "subject (hash) by author"
+          # Exclude merge commits and format with author
           if [ -z "$PREVIOUS_TAG" ]; then
-            COMMITS=$(git log --pretty=format:"%s (%h) by @%an")
+            COMMITS=$(git log --no-merges --pretty=format:"%s (%h) by @%an")
           else
-            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"%s (%h) by @%an")
+            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --no-merges --pretty=format:"%s (%h) by @%an")
           fi
           
-          # Categorize commits
+          # Categorize commits (exclude docs and merge commits)
           BREAKING=$(echo "$COMMITS" | grep -E "^(BREAKING|breaking|MAJOR|feat!|fix!)" || true)
           FEATURES=$(echo "$COMMITS" | grep -E "^feat" | grep -v "!" || true)
           FIXES=$(echo "$COMMITS" | grep -E "^fix" | grep -v "!" || true)
