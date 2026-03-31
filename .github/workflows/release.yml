@@ -76,23 +76,25 @@ jobs:
             echo "" >> changelog.md
           fi
           
-          # Add Contributors section
+          # Add Contributors section at the bottom 
           if [ -n "$CONTRIBUTORS" ]; then
             echo "## Contributors" >> changelog.md
             echo "" >> changelog.md
-            while IFS='|' read -r name email; do
-              # Extract GitHub username from email or use name
-              if [[ "$email" == *"@users.noreply.github.com"* ]]; then
+            # Process each contributor once
+            echo "$CONTRIBUTORS" | while IFS='|' read -r name email; do
+              # Extract GitHub username from email
+              if [[ "$email" == *"@users.noreply.github.com" ]]; then
+                # Format: 123456789+username@users.noreply.github.com
                 username=$(echo "$email" | sed 's/@users.noreply.github.com//' | sed 's/^[0-9]*+//')
-                echo "- @${username}" >> changelog.md
-              elif [[ "$email" == *"github.com"* ]]; then
-                username=$(echo "$email" | sed 's/@.*//') 
-                echo "- @${username}" >> changelog.md
+                echo "- @${username}"
+              elif [[ "$email" == *"@"* ]]; then
+                # For regular emails, try to extract username or use name
+                username=$(echo "$email" | cut -d'@' -f1)
+                echo "- @${username}"
               else
-                # Try to get GitHub username from git config or use name
-                echo "- **${name}**" >> changelog.md
+                echo "- **${name}**"
               fi
-            done <<< "$CONTRIBUTORS"
+            done >> changelog.md
             echo "" >> changelog.md
           fi
           
