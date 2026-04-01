@@ -36,10 +36,11 @@ jobs:
             echo "Comparing: ${PREVIOUS_TAG}..${CURRENT_TAG}"
           fi
           
+          # Get commits with clickable commit hash links
           if [ -z "$PREVIOUS_TAG" ]; then
-            COMMITS=$(git log --no-merges --pretty=format:"%s (%h) by @%an")
+            COMMITS=$(git log --no-merges --pretty=format:"%s ([%h](https://github.com/${{ github.repository }}/commit/%H)) by @%an")
           else
-            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --no-merges --pretty=format:"%s (%h) by @%an")
+            COMMITS=$(git log ${PREVIOUS_TAG}..HEAD --no-merges --pretty=format:"%s ([%h](https://github.com/${{ github.repository }}/commit/%H)) by @%an")
           fi
           
           # Categorize commits (exclude docs and merge commits)
