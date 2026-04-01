@@ -36,8 +36,6 @@ jobs:
             echo "Comparing: ${PREVIOUS_TAG}..${CURRENT_TAG}"
           fi
           
-          # Get commits with author info: "subject (hash) by author"
-          # Exclude merge commits and format with author
           if [ -z "$PREVIOUS_TAG" ]; then
             COMMITS=$(git log --no-merges --pretty=format:"%s (%h) by @%an")
           else
